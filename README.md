@@ -1,6 +1,6 @@
 # Gas and Temperature Tracker
 
-This is a fun little project that tracks daily gas levels and temperatures over the course of a month. Perfect for anyone who loves to monitor their bodily functions (we won't judge).
+This is a fun little project that tracks daily gas levels and temperatures over the course of a year. Perfect for anyone who loves to monitor their bodily functions (we won't judge).
 
 ## How It Works
 
