@@ -26,4 +26,4 @@ We welcome contributions to this project! If you have any ideas for improving th
 
 ## License
 
-This project is licensed under the [MIT License](https://chat.openai.com/chat/LICENSE). Do whatever you want with it (except claim it as your own, that's just rude).
+This project is licensed under the [MIT License](https://github.com/Coniass/python-gas_temp/blob/main/LICENSE.md). Do whatever you want with it (except claim it as your own, that's just rude).
