@@ -1,85 +1,86 @@
+import aiohttp  # For sending love letters to the API
+import asyncio  # For when we want our program to procrastinate as much as we do
+import csv  # For saving data to a file, because we never know when we'll need it again
 import datetime  # Because we need to time-travel back to fix our mistakes
 import matplotlib.pyplot as plt  # For creating visual art that makes people think we're smart
-import requests  # For sending love letters to the API
 import mplcursors  # To magically hover over the data and make our dreams come true
+import numpy as np  # For when we need some extra math skills beyond what our fingers can count
 
-api_url = "https://agsi.gie.eu/api" # The secret hideout of the gas storage data
-weather_url = "https://archive-api.open-meteo.com/v1/archive" # The magical gateway to the weather data
+api_url = "https://agsi.gie.eu/api"  # The secret lair of the gas storage data
+weather_url = "https://archive-api.open-meteo.com/v1/archive"  # The magical portal to the weather data
 
-# Determine the current date and subtract one year, because who has time to remember dates
-now = datetime.datetime.now()
-one_year_ago = now - datetime.timedelta(days=365)
+# Let's go back in time 7 days, because a week is more than enough for us to make sense of the data
+start = datetime.datetime.now() - datetime.timedelta(days=7)
+# And back even further to the year 2009, because why not
+end = start - datetime.timedelta(days=4465)
 
-# Parameters for the gas storage data API request, we ask nicely and hope for the best
+# Parameters for the gas storage data API request, let's hope the API is in a good mood today
 params = {
     "country": "de",
-    "from": one_year_ago.strftime("%Y-%m-%d"),
-    "to": now.strftime("%Y-%m-%d"),
-    "size": 365
+    "from": end.strftime("%Y-%m-%d"),
+    "to": start.strftime("%Y-%m-%d"),
+    "size": 4465
 }
 
-# Parameters for the weather data API request, we tell the weather to come to us
+# Parameters for the weather data API request, let's be polite and ask nicely
 weather_params = {
     "latitude": 51.20,
     "longitude": 6.47,
-    "start_date": one_year_ago.strftime("%Y-%m-%d"),
-    "end_date": now.strftime("%Y-%m-%d"),
-    "hourly": "temperature_2m"
+    "start_date": end.strftime("%Y-%m-%d"),
+    "end_date": start.strftime("%Y-%m-%d"),
+    'daily': 'temperature_2m_mean',
+    'timezone': 'Europe/Berlin',
 }
 
-# Get the gas storage data from the API, because we love data more than anything
-response = requests.get(api_url, params=params)
-gas_data = [float(d["gasInStorage"]) for d in response.json()["data"]]
+# Get the gas storage data asynchronously, because we like to multi-task
+async def get_gas_data():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(api_url, params=params) as response:
+            data = await response.json()
+            return data["data"]
 
-# Get the temperature data from the weather API and resample it to daily data, because we like things smooth
-weather_response = requests.get(weather_url, params=weather_params)
-temperature_data = weather_response.json()["hourly"]["temperature_2m"]
-tag_temperature = []
-temp_sum = 0
-for i, temp in enumerate(temperature_data):
-    if temp is not None:
-        temp_sum += temp
-    if i % 24 == 23:
-        tag_temperature.append(temp_sum/24)
-        temp_sum = 0
+# Get the temperature data asynchronously, because we don't like to wait
+async def get_temperature_data():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(weather_url, params=weather_params) as response:
+            data = await response.json()
+            return data["daily"]["temperature_2m_mean"]
 
-# Create a file with the current date and time as the name, because we're organized like that
-filename = now.strftime("%Y-%m-%d_%H-%M-%S_data.txt")
-with open(filename, "w") as file:
-    for temp, gas in zip(tag_temperature, gas_data):
-        file.write(f"{temp};{gas}\n")
+# Let's run the async functions and wait for them to finish, because we're patient
+loop = asyncio.get_event_loop()
+gas_data = loop.run_until_complete(get_gas_data())
+temperature_data = loop.run_until_complete(get_temperature_data())
+
+# Unzip the gas data to get separate arrays for dates and gas values, because we're organized like that
+gas_dateArray, gas_valueArray = zip(*[(d['gasDayStart'], d['gasInStorage']) for d in reversed(gas_data)])
+
+# Save the data to a CSV file, because we like to have a backup plan
+with open("data.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["date", "gas", "temperature"])
+    for i in range(len(gas_dateArray)):
+        writer.writerow([gas_dateArray[i], gas_valueArray[i], temperature_data[i]])
 
 # Create a figure with two subplots for the gas storage and temperature data, because we're fancy like that
+plt.style.use('dark_background')
 fig, axs = plt.subplots(2, figsize=(16, 9))
-fig.patch.set_facecolor('#1a1a1a') 
-
-# Set the colors of the labels and tick marks for each axis, because details matter
-axs[0].tick_params(colors='#f5f5f5')
-axs[1].tick_params(colors='#f5f5f5')
 
 # Set the colors of the grid lines, because we want them to feel included
-axs[0].grid(color='#2c2c2c')
-axs[1].grid(color='#2c2c2c')
-axs[0].set_facecolor('#1a1a1a')
-axs[1].set_facecolor('#1a1a1a')
+axs[0].grid(color='white', alpha=0.3)
+axs[1].grid(color='white', alpha=0.3)
 
 # Set the titles and axis labels for each subplot, because we're storytellers at heart
 axs[0].set_title("Gas Storage", color='red')
 axs[1].set_title("Temperature", color='blue')
-axs[0].set_ylabel('Gas in Twh', color="#f5f5f5") 
-axs[0].set_xlabel('Days', color="#f5f5f5")  
-axs[1].set_xlabel('Days', color="#f5f5f5")  
-axs[1].set_ylabel('Temperature', color="#f5f5f5")  
+axs[0].set_ylabel('Gas in Twh', color="#f5f5f5")
+axs[0].set_xlabel('Days', color="#f5f5f5")
+axs[1].set_xlabel('Days', color="#f5f5f5")
+axs[1].set_ylabel('Temperature', color="#f5f5f5")
+
+gas_yAxis = np.array([float(numeric_string) for numeric_string in gas_valueArray])
 
 # Plotting the gas and temperature data in style!
-mplcursors.cursor(axs[0].plot(gas_data, color='red'), hover=True).connect("add", lambda sel: sel.annotation.set_text(f"Day: {sel.target[0]}\nGas: {sel.target[1]:.2f} TWh\nTemp: {tag_temperature[int(sel.target[0])]:.2f} °C"))
-mplcursors.cursor(axs[1].plot(tag_temperature, color='blue'), hover=True).connect("add", lambda sel: sel.annotation.set_text(f"Day: {sel.target[0]}\nGas: {gas_data[int(sel.target[0])]:.2f} TWh\nTemp: {sel.target[1]:.2f} °C"))
+mplcursors.cursor(axs[0].plot(gas_yAxis, color='red'), hover=True).connect("add", lambda sel: sel.annotation.set_text(f"Day: {sel.target[0]}\nGas: {sel.target[1]:.2f} TWh\nTemp: {temperature_data[int(sel.target[0])]:.2f} °C"))
+mplcursors.cursor(axs[1].plot(temperature_data, color='blue'), hover=True).connect("add", lambda sel: sel.annotation.set_text(f"Day: {sel.target[0]}\nGas: {gas_yAxis[int(sel.target[0])]:.2f} TWh\nTemp: {sel.target[1]:.2f} °C"))
 
-# Time to export our amazing visualizations
-plt.savefig(f"{now.strftime('%Y-%m-%d_%H-%M-%S')}_squares1.png",
-            bbox_inches="tight",
-            pad_inches=1,
-            edgecolor='w',
-            orientation='landscape')
-           
 plt.show()
