@@ -2,13 +2,16 @@
 
 This is a fun little project that tracks daily gas levels and temperatures over the course of a year. Perfect for anyone who loves to monitor their bodily functions (we won't judge).
 
-## How It Works
 
-We've got a dataset with 365 Days of gas readings and the corresponding temperatures. We've visualized this data using Matplotlib to create two graphs, one for gas and one for temperature. You can hover over each data point to see the specific readings for that day.
+## Usage
+
+When you run the program, it will retrieve gas storage and temperature data for a specific location and time range, save the data to a CSV file called data.csv, and create a plot to visualize the data. The plot will be displayed in a new window and will include two subplots, one for gas storage data and another for temperature data. You can hover over the data points to view annotations that show the date, gas storage value, and temperature value for each point.
 
 ## To be added
 
-The next step is to develop an AI that predicts how Germany's gas reserves develop based on temperature.
+The next step is to develop an AI model using LightGBM that predicts how gas reserves in Germany will develop based on temperature. This will involve preprocessing the data, training the model, and evaluating its performance. Once the model is trained, we can use it to make predictions for future gas storage levels based on expected temperatures.
+
+We'll also update the visualization to include predictions from the AI model and compare them to the actual gas storage levels. This will give us a better understanding of how well the model is performing and whether it can be used to make accurate predictions.
 
 ## Installation
 
